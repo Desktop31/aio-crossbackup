@@ -80,10 +80,10 @@ wg genkey | tee target_privatekey | wg pubkey > target_publickey
 # -- If you don't, you can run this temporary container to generate the keys:
 
 # Run this for the Client keys:
-docker run --rm aio-crossbackup:latest sh -c 'priv=$(wg genkey); pub=$(echo $priv | wg pubkey); echo -e "CLIENT_PRIVATE_KEY=$priv\nCLIENT_PUBLIC_KEY=$pub"'
+docker run --rm ghcr.io/desktop31/aio-crossbackup:latest sh -c 'priv=$(wg genkey); pub=$(echo $priv | wg pubkey); echo -e "CLIENT_PRIVATE_KEY=$priv\nCLIENT_PUBLIC_KEY=$pub"'
 
 # Run this for the Target keys:
-docker run --rm aio-crossbackup:latest sh -c 'priv=$(wg genkey); pub=$(echo $priv | wg pubkey); echo -e "TARGET_PRIVATE_KEY=$priv\nTARGET_PUBLIC_KEY=$pub"'
+docker run --rm ghcr.io/desktop31/aio-crossbackup:latest sh -c 'priv=$(wg genkey); pub=$(echo $priv | wg pubkey); echo -e "TARGET_PRIVATE_KEY=$priv\nTARGET_PUBLIC_KEY=$pub"'
 ```
 
 ### 3. Configure and start the Target

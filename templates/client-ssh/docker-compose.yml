@@ -1,6 +1,6 @@
 services:
   borg-client:
-    image: aio-crossbackup:latest
+    image: ghcr.io/desktop31/aio-crossbackup:latest
     container_name: aio-crossbackup_client-ssh
     restart: always
     environment:
