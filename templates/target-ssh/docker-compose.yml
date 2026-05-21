@@ -1,0 +1,22 @@
+services:
+  borg-target:
+    image: aio-crossbackup:latest
+    container_name: aio-crossbackup_target-ssh
+    restart: always
+    ports:
+      # TODO: specify port! 
+      # This is the port the client must connect to.
+      # If you change this, ensure TARGET_PORT in the client's borgmatic.yaml matches.
+      - "2222:22" 
+    environment:
+      - ROLE=target
+      - ENABLE_WIREGUARD=false
+
+      # Security
+      - SSH_PUBLIC_KEY=${SSH_KEY_PUBLIC}
+
+      # Consistency check notification
+      - KUMA_TARGET_PUSH_URL=${KUMA_TARGET_URL}
+    volumes:
+      # TODO: specify your paths!
+      - ./backup_destination/:/backups

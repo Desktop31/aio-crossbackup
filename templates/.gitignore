@@ -1,0 +1,4 @@
+**/data_to_backup
+**/backup_destination
+**/config/borgmatic
+**/config/wireguard
