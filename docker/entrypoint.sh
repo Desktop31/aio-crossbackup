@@ -114,6 +114,26 @@ EOF
 fi
 
 # 4. START SERVICES
+if [ "$ROLE" = "client" ]; then
+    # Create a temporary file to hold the fcron rules
+    > /tmp/fcrontab.txt
+
+    if [ -n "$CRON_SCHEDULE" ]; then
+        echo "Setting backup schedule: $CRON_SCHEDULE (with boot catch-up)"
+        # &bootrun tells fcron to catch up on missed runs upon startup
+        echo "&bootrun $CRON_SCHEDULE /usr/bin/borgmatic --syslog-verbosity 1" >> /tmp/fcrontab.txt
+    fi
+
+    if [ -n "$CRON_CHECK_SCHEDULE" ]; then
+        echo "Setting consistency check schedule: $CRON_CHECK_SCHEDULE"
+        # We generally do NOT want bootrun for consistency checks, so we omit it
+        echo "$CRON_CHECK_SCHEDULE /usr/bin/borgmatic check --syslog-verbosity 1" >> /tmp/fcrontab.txt
+    fi
+
+    # Compile the fcron table for the root user
+    fcrontab -u root /tmp/fcrontab.txt
+fi
+
 if [ "$ROLE" = "target" ]; then
     echo "Starting SSH target..."
     /usr/sbin/sshd
@@ -122,7 +142,6 @@ if [ "$ROLE" = "target" ]; then
         echo "Configuring 48-hour active freshness monitoring..."
         cat << 'EOF' > /usr/local/bin/verify-freshness.sh
 #!/bin/sh
-# This checks file modification timestamps, which works on encrypted files.
 if [ "$(find /backups -type f -mtime -2 | wc -l)" -gt 0 ]; then
     curl -s "${KUMA_TARGET_PUSH_URL}?status=up&msg=OK" > /dev/null
 else
@@ -130,16 +149,15 @@ else
 fi
 EOF
         chmod +x /usr/local/bin/verify-freshness.sh
-        echo "0 */12 * * * /usr/local/bin/verify-freshness.sh" >> /etc/crontabs/root
+        
+        # Target doesn't need bootrun for a simple 12-hour interval check
+        echo "0 */12 * * * /usr/local/bin/verify-freshness.sh" > /tmp/fcrontab_target.txt
+        fcrontab -u root /tmp/fcrontab_target.txt
     fi
 fi
 
-if [ "$ROLE" = "client" ]; then
-    > /etc/crontabs/root
-    [ -n "$CRON_SCHEDULE" ] && echo "$CRON_SCHEDULE /usr/bin/borgmatic --syslog-verbosity 1" >> /etc/crontabs/root
-    [ -n "$CRON_CHECK_SCHEDULE" ] && echo "$CRON_CHECK_SCHEDULE /usr/bin/borgmatic check --syslog-verbosity 1" >> /etc/crontabs/root
-fi
 
-crond -b
+# Start fcron daemon in the background
+fcron -b
 echo "Container initialized successfully."
 exec tail -f /dev/null

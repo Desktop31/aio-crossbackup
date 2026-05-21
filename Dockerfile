@@ -9,8 +9,7 @@ RUN apk add --no-cache \
     openssh \
     tzdata \
     curl \
-    cronie \
-    cronie-anacron
+    fcron
 
 # Configure SSH server
 RUN mkdir -p /var/run/sshd /root/.ssh /etc/wireguard /etc/borgmatic.d && \
