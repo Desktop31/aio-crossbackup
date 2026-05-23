@@ -81,23 +81,38 @@ if [ "$ROLE" = "client" ] && [ ! -f /etc/borgmatic.d/config.yaml ]; then
     TARGET_IP=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "10.10.10.2" || echo "TARGET_IP_OR_DOMAIN")
     TARGET_PORT=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "22" || echo "2222")
     CLIENT_PUSH=${KUMA_CLIENT_PUSH_URL:-"https://kuma.yourdomain.com/api/push/CLIENT_ID"}
+    REPO=${TARGET_REPOSITORY_URL:-"ssh://root@${TARGET_IP}:${TARGET_PORT}/backups/my_repo.borg"}
 
     cat <<EOF > /etc/borgmatic.d/config.yaml
 location:
     source_directories:
         - /source_data
     repositories:
-        - ssh://root@${TARGET_IP}:${TARGET_PORT}/backups/my_repo.borg
+        - path: ${REPO}
+          label: remote-repo
 storage:
     encryption_passcommand: "cat /etc/borgmatic.d/passphrase"
-retention:
-    keep_daily: 7
-    keep_weekly: 4
+
+# Keeps 1 daily backup for the last 7 days (7 daily backups)
+keep_daily: 7
+# Keeps 1 weekly backups for the last 8 weeks (8 weekly backups)
+keep_weekly: 8
+# Keeps 1 monthly backup for the last 6 months (6 monthly backups)
+keep_monthly: 6
+
 consistency:
     checks:
         - repository
         - archives
     check_last: 3
+
+log_file: /etc/borgmatic.d/log.txt
+retries: 3
+retry_wait: 30
+
+# Remote network upload rate limit in kiBytes/second.
+# upload_rate_limit: 100
+
 uptime_kuma:
     push_url: ${CLIENT_PUSH}
     states:

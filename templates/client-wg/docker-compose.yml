@@ -15,10 +15,13 @@ services:
 
       # Backup schedule
       - CRON_SCHEDULE=0 3 * * *
-      # PUSH URL for telling uptime kuma that a backup happened
-      - KUMA_CLIENT_PUSH_URL=${KUMA_PUSH_URL}
       # Backup integrity check schedule
       - CRON_CHECK_SCHEDULE=0 1 * * 0
+
+      # PUSH URL for telling uptime kuma that a backup happened
+      - KUMA_CLIENT_PUSH_URL=${KUMA_PUSH_URL}
+      # Path to target repository like: "ssh://root@example.com:22/backups"
+      # - TARGET_REPOSITORY_URL=${TARGET_REPO_URL}
 
       # Security
       - WG_ENDPOINT=${WIREGUARD_ENDPOINT}
