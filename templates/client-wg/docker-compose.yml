@@ -9,27 +9,34 @@ services:
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     environment:
-      - ROLE=client
-      - ENABLE_WIREGUARD=true
-      - WG_MODE=client
+      ROLE: client
+      ENABLE_WIREGUARD: "true"
+      WG_MODE: client
 
       # Backup schedule
-      - CRON_SCHEDULE=0 3 * * *
+      CRON_SCHEDULE: "0 3 * * *"
       # Backup integrity check schedule
-      - CRON_CHECK_SCHEDULE=0 1 * * 0
+      CRON_CHECK_SCHEDULE: "0 1 * * 0"
 
       # PUSH URL for telling uptime kuma that a backup happened
-      - KUMA_CLIENT_PUSH_URL=${KUMA_PUSH_URL}
+      KUMA_CLIENT_PUSH_URL: ${KUMA_PUSH_URL}
       # Path to target repository like: "ssh://root@example.com:22/backups"
-      # - TARGET_REPOSITORY_URL=${TARGET_REPO_URL}
+      # TARGET_REPOSITORY_URL=${TARGET_REPO_URL}
 
       # Security
-      - WG_ENDPOINT=${WIREGUARD_ENDPOINT}
-      - WG_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
-      - WG_PEER_PUBLIC_KEY=${WIREGUARD_PEER_PUBLIC_KEY}
-      - SSH_PRIVATE_KEY=${SSH_KEY_PRIVATE}
+      WG_ENDPOINT: ${WIREGUARD_ENDPOINT}
+      WG_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WG_PEER_PUBLIC_KEY: ${WIREGUARD_PEER_PUBLIC_KEY}
+      SSH_PRIVATE_KEY: ${SSH_KEY_PRIVATE}
     volumes:
       # TODO: specify your paths!
       - ./data_to_backup/:/source_data:ro     
-      - ./config/borgmatic:/etc/borgmatic.d   # Config will be auto-generated here
-      - ./config/wireguard:/etc/wireguard     # Config will be auto-generated here
+      # Config will be auto-generated here
+      - ./config/borgmatic:/etc/borgmatic.d   
+      # Preserve keyfile
+      - ./config/keys:/root/.config/borg/keys
+      # Preserve known_hosts
+      - ./config/ssh:/root/.ssh 
+      # Config will be auto-generated here
+      - ./config/wireguard:/etc/wireguard     
+

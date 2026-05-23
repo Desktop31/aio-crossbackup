@@ -9,14 +9,17 @@ services:
       # If you change this, ensure TARGET_PORT in the client's borgmatic.yaml matches.
       - "2222:22" 
     environment:
-      - ROLE=target
-      - ENABLE_WIREGUARD=false
+      ROLE: target
+      ENABLE_WIREGUARD: "false"
 
       # Security
-      - SSH_PUBLIC_KEY=${SSH_KEY_PUBLIC}
+      SSH_PUBLIC_KEY: ${SSH_KEY_PUBLIC}
 
       # Consistency check notification
-      - KUMA_TARGET_PUSH_URL=${KUMA_TARGET_URL}
+      KUMA_TARGET_PUSH_URL: ${KUMA_TARGET_URL}
     volumes:
       # TODO: specify your paths!
       - ./backup_destination/:/backups
+      # Preserve known_hosts
+      - ./config/ssh:/root/.ssh 
+

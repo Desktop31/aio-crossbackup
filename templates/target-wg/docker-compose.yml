@@ -12,18 +12,22 @@ services:
       # TODO: specify port!
       - "51821:51821/udp" # Required so client-wg can establish the VPN
     environment:
-      - ROLE=target
-      - ENABLE_WIREGUARD=true
-      - WG_MODE=server
+      ROLE: target
+      ENABLE_WIREGUARD: "true"
+      WG_MODE: server
 
       # Security
-      - WG_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
-      - WG_PEER_PUBLIC_KEY=${WIREGUARD_PEER_PUBLIC_KEY}
-      - SSH_PUBLIC_KEY=${SSH_KEY_PUBLIC}
+      WG_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WG_PEER_PUBLIC_KEY: ${WIREGUARD_PEER_PUBLIC_KEY}
+      SSH_PUBLIC_KEY: ${SSH_KEY_PUBLIC}
 
       # Consistency check notification
-      - KUMA_TARGET_PUSH_URL=${KUMA_TARGET_URL}
+      KUMA_TARGET_PUSH_URL: ${KUMA_TARGET_URL}
     volumes:
       # TODO: specify your paths!
       - ./backup_destination/:/backups
-      - ./config/wireguard:/etc/wireguard  # Config will be auto-generated here
+      # Config will be auto-generated here
+      - ./config/wireguard:/etc/wireguard
+      # Preserve known_hosts
+      - ./config/ssh:/root/.ssh
+

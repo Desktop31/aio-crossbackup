@@ -29,28 +29,6 @@ You can run this in two modes:
 2. **SSH-only mode:** Used if the Target has a public IP address and you do not want to use a VPN. The Target exposes an SSH port directly to the internet.
 
 
-## Prerequisites
-Before deploying, generate your cryptographic keys on your local machine:
-
-**1. Generate SSH keys (required for all modes)**
-
-```bash
-ssh-keygen -t ed25519 -f ./temp_key -N ""
-```
-
-Keep the private key for the Client, and the public key for the Target.
-
-**2. Generate WireGuard keys (only if using WireGuard mode)**
-
-```bash
-# Generate keys for Machine A (Client)
-wg genkey | tee client_privatekey | wg pubkey > client_publickey
-
-# Generate keys for Machine B (Target)
-wg genkey | tee target_privatekey | wg pubkey > target_publickey
-```
-
-
 ## Quick start
 
 ### 1. Copy the templates to your servers
@@ -117,21 +95,16 @@ The **Client** container will automatically generate a template `config.yaml` in
 This is where you can optionally customize the backup if you want to.
 
 ---
-#### :warning: CRITICAL: Save or set encryption passphrase
-The Client container automatically generates an encryption passphrase inside `./config/borgmatic/passphrase` to secure the backups.
-You must **SAVE IT** or input your own before initializing the repository.
-
-Without this passphrase, you **WON'T BE ABLE TO RECOVER YOUR BACKUPS**.
 
 Initialize the Borg repository on the Target by executing this command on the Client machine:
 
 ```bash
-docker exec -it aio-crossbackup_client-<wg/ssh> borgmatic init -e repokey
+docker exec -it aio-crossbackup_client-<wg/ssh> borgmatic init
 ```
 
 ---
 #### :warning: CRITICAL: Export your recovery key
-Because `repokey` stores the actual encryption key inside the remote repository itself, your backups will be permanently lost if the remote repository's configuration file gets corrupted (even if you remember your passphrase).
+Because `keyfile` stores the actual encryption key inside your mapped `.config/borg/keys`, your backups will be permanently lost if the mounted volume gets corrupted.
 
 Immediately after initialization, run this command to print your master key:
 
@@ -139,7 +112,7 @@ Immediately after initialization, run this command to print your master key:
 docker exec -it aio-crossbackup_client-<wg/ssh> borgmatic key export
 ```
 
-Copy the output text and save it alongside your passphrase in a secure password manager.
+Copy the output text and save it in a secure storage or a password manager.
 
 ---
 

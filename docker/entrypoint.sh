@@ -72,12 +72,6 @@ fi
 if [ "$ROLE" = "client" ] && [ ! -f /etc/borgmatic.d/config.yaml ]; then
     echo "Generating default borgmatic.yaml template..."
 
-    # Generate a random 32-character passphrase if the file doesn't exist
-    if [ ! -f /etc/borgmatic.d/passphrase ]; then
-        echo "Generating secure random passphrase..."
-        tr -dc A-Za-z0-9_ < /dev/urandom | head -c 32 > /etc/borgmatic.d/passphrase
-    fi
-
     TARGET_IP=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "10.10.10.2" || echo "TARGET_IP_OR_DOMAIN")
     TARGET_PORT=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "22" || echo "2222")
     CLIENT_PUSH=${KUMA_CLIENT_PUSH_URL:-"https://kuma.yourdomain.com/api/push/CLIENT_ID"}
@@ -90,8 +84,7 @@ source_directories:
 repositories:
     - path: ${REPO}
       label: remote-repo
-
-encryption_passcommand: "cat /etc/borgmatic.d/passphrase"
+      encryption: keyfile
 
 # Keeps 1 daily backup for the last 7 days (7 daily backups)
 keep_daily: 7
@@ -110,7 +103,7 @@ retries: 3
 retry_wait: 30
 
 # Remote network upload rate limit in kiBytes/second.
-# upload_rate_limit: 100
+# upload_rate_limit: 1000
 
 uptime_kuma:
     push_url: ${CLIENT_PUSH}
@@ -121,8 +114,8 @@ uptime_kuma:
     verify_tls: true
 EOF
     echo "ACTION REQUIRED: Initialize the repo by running:"
-    echo "docker exec -it <container_name> borgmatic init -e repokey"
-    echo "CRITICAL: Back up the contents of /etc/borgmatic.d/passphrase to a password manager!"
+    echo "docker exec -it <container_name> borgmatic init"
+    echo "CRITICAL: Back up the keyfile to prevent losing data!: \`docker exec -it <container_name> borgmatic key export\`"
 fi
 
 # 4. START SERVICES
