@@ -82,8 +82,6 @@ if [ "$ROLE" = "client" ] && [ ! -f /etc/borgmatic.d/config.yaml ]; then
     TARGET_PORT=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "22" || echo "2222")
     CLIENT_PUSH=${KUMA_CLIENT_PUSH_URL:-"https://kuma.yourdomain.com/api/push/CLIENT_ID"}
 
-    cat "CHANGEME" > /etc/borgmatic.d/passphrase
-    
     cat <<EOF > /etc/borgmatic.d/config.yaml
 location:
     source_directories:
