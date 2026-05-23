@@ -33,10 +33,11 @@ services:
       - ./data_to_backup/:/source_data:ro     
       # Config will be auto-generated here
       - ./config/borgmatic:/etc/borgmatic.d   
-      # Preserve keyfile
-      - ./config/keys:/root/.config/borg/keys
-      # Preserve known_hosts
-      - ./config/ssh:/root/.ssh 
       # Config will be auto-generated here
       - ./config/wireguard:/etc/wireguard     
+      # Preserve keyfile and known_hosts
+      - root_data:/root
+
+volumes:
+  root_data:
 

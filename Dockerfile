@@ -22,8 +22,7 @@ RUN chmod +x /entrypoint.sh
 
 VOLUME /etc/borgmatic.d
 VOLUME /etc/wireguard
-VOLUME /root/.config/borg/keys
-VOLUME /root/.ssh
+VOLUME /root
 VOLUME /backups
 
 ENTRYPOINT ["/entrypoint.sh"]

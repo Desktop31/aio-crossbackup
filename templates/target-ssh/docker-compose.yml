@@ -21,5 +21,8 @@ services:
       # TODO: specify your paths!
       - ./backup_destination/:/backups
       # Preserve known_hosts
-      - ./config/ssh:/root/.ssh 
+      - root_data:/root
+
+volumes:
+  root_data:
 

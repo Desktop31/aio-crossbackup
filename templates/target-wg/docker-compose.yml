@@ -29,5 +29,7 @@ services:
       # Config will be auto-generated here
       - ./config/wireguard:/etc/wireguard
       # Preserve known_hosts
-      - ./config/ssh:/root/.ssh
+      - root_data:/root
 
+volumes:
+  root_data:
