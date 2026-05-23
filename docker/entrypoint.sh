@@ -129,7 +129,7 @@ fi
 # 4. START SERVICES
 if [ "$ROLE" = "client" ]; then
     # Create a temporary file to hold the fcron rules
-    > /tmp/fcrontab.txt
+    true > /tmp/fcrontab.txt
 
     if [ -n "$CRON_SCHEDULE" ]; then
         echo "Setting backup schedule: $CRON_SCHEDULE (with boot catch-up)"
@@ -172,5 +172,5 @@ fi
 
 # Start fcron daemon in the background
 fcron -b
-echo "Container initialized successfully."
-exec tail -f /dev/null
+echo "Container initialized successfully. Streaming logs..."
+exec syslogd -n -O /dev/stdout
