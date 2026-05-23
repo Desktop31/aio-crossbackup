@@ -84,14 +84,14 @@ if [ "$ROLE" = "client" ] && [ ! -f /etc/borgmatic.d/config.yaml ]; then
     REPO=${TARGET_REPOSITORY_URL:-"ssh://root@${TARGET_IP}:${TARGET_PORT}/backups/my_repo.borg"}
 
     cat <<EOF > /etc/borgmatic.d/config.yaml
-location:
-    source_directories:
-        - /source_data
-    repositories:
-        - path: ${REPO}
-          label: remote-repo
-storage:
-    encryption_passcommand: "cat /etc/borgmatic.d/passphrase"
+source_directories:
+    - /source_data
+
+repositories:
+    - path: ${REPO}
+      label: remote-repo
+
+encryption_passcommand: "cat /etc/borgmatic.d/passphrase"
 
 # Keeps 1 daily backup for the last 7 days (7 daily backups)
 keep_daily: 7
@@ -100,11 +100,10 @@ keep_weekly: 8
 # Keeps 1 monthly backup for the last 6 months (6 monthly backups)
 keep_monthly: 6
 
-consistency:
-    checks:
-        - repository
-        - archives
-    check_last: 3
+checks:
+    - repository
+    - archives
+check_last: 3
 
 log_file: /etc/borgmatic.d/log.txt
 retries: 3
