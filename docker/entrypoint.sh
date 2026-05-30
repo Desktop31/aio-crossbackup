@@ -103,6 +103,9 @@ repositories:
       label: remote-repo
       encryption: keyfile
 
+# Important - would use container hostname by default, which changes
+archive_name_format: backup-{now:%Y-%m-%dT%H:%M:%S.%f}
+
 # Keeps 1 daily backup for the last 7 days (7 daily backups)
 keep_daily: 7
 # Keeps 1 weekly backups for the last 8 weeks (8 weekly backups)
