@@ -1,32 +1,45 @@
 #!/bin/sh
 PATTERN_FILE="/etc/borgmatic.d/dynamic_roots.lst"
+PREFIX="${SNAPSHOT_PREFIX:-storage-}"
 
-# 1. Grab the variable from Docker, or use a safe default if missing
-PREFIX="${SNAPSHOT_PREFIX:-auto-}"
+# 1. Clean up stale bind mounts from the previous day's run
+MOUNTS=$(grep " /stable_data/" /proc/mounts | cut -d' ' -f2 | sort -r)
+if [ -n "$MOUNTS" ]; then
+    for m in $MOUNTS; do
+        umount "$m" 2>/dev/null
+    done
+fi
 
-# 2. Clear the file from the previous run
+# 2. Clear the Borg pattern file
 true > "$PATTERN_FILE"
 
-# 3. Find parent directories using the dynamic prefix
-PARENTS=$(find /source_data -type d -name "${PREFIX}*" | sed 's|/[^/]*$||' | sort -u)
+# 3. Find parent directories dynamically mapped via Docker volumes
+PARENTS=$(grep " /source_data/" /proc/mounts | cut -d' ' -f2)
 
 # 4. Loop through each dataset
 for parent in $PARENTS; do
   
   LATEST_PATH=""
   
-  # 5. Use a glob to find snapshots. The shell expands these alphabetically.
+  # Find the newest chronological snapshot
   for dir in "$parent/${PREFIX}"*; do
-    # Ensure the directory actually exists (handles cases where the glob finds nothing)
     if [ -d "$dir" ]; then
-      # Overwrite the variable. The loop naturally ends on the newest (last) snapshot.
       LATEST_PATH="$dir"
     fi
   done
   
-  # 6. If we found a valid snapshot, append it to the Borgmatic list
   if [ -n "$LATEST_PATH" ]; then
-    echo "R $LATEST_PATH" >> "$PATTERN_FILE"
+    # Generate a perfectly static path (e.g., /stable_data/main-storage/d31-private)
+    STABLE_PATH=$(echo "$parent" | sed 's|^/source_data|/stable_data|')
+    
+    # Create the static directory inside the container
+    mkdir -p "$STABLE_PATH"
+    
+    # Bind mount the dynamic snapshot to the static directory
+    mount -o bind "$LATEST_PATH" "$STABLE_PATH"
+    
+    # Give Borgmatic the static path
+    echo "R $STABLE_PATH" >> "$PATTERN_FILE"
   fi
   
 done

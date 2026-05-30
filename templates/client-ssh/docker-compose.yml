@@ -3,6 +3,7 @@ services:
     image: ghcr.io/desktop31/aio-crossbackup:latest
     container_name: aio-crossbackup_client-ssh
     restart: always
+    # privileged: true # allow internal bind mounts (ZFS snapshots only)
     environment:
       ROLE: client
       ENABLE_WIREGUARD: "false"
