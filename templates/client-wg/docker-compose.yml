@@ -15,6 +15,7 @@ services:
 
       # Backup schedule
       CRON_SCHEDULE: "0 3 * * *"
+      # SNAPSHOT_PREFIX: "auto-daily-" # NOTE: use only when backing up zfs snapshots
       # Backup integrity check schedule
       CRON_CHECK_SCHEDULE: "0 1 * * 0"
 

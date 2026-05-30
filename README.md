@@ -49,6 +49,7 @@ cat temp_key      # This is your SSH_PRIVATE_KEY
 ```
 
 Generate WireGuard keys (only if using WireGuard mode)
+
 ```bash
 # -- If you have a trusted WireGuard installation: 
 wg genkey | tee client_privatekey | wg pubkey > client_publickey
@@ -91,9 +92,9 @@ docker compose up -d
 ```
 
 ### 5. Initialize the repository (Client only)
+
 The **Client** container will automatically generate a template `config.yaml` inside your mapped `./config/borgmatic` directory.
 This is where you can optionally customize the backup if you want to.
-
 ---
 
 Initialize the Borg repository on the Target by executing this command on the Client machine:
@@ -103,6 +104,7 @@ docker exec -it aio-crossbackup_client-<wg/ssh> borgmatic init
 ```
 
 ---
+
 #### :warning: CRITICAL: Export your recovery key
 Because `keyfile` stores the actual encryption key inside your mapped `.config/borg/keys`, your backups will be permanently lost if the mounted volume gets corrupted.
 
@@ -119,31 +121,88 @@ Copy the output text and save it in a secure storage or a password manager.
 Your automated backups will now run according to your `CRON_SCHEDULE`.
 
 
-## Environment variable reference
+## Advanced usage: ZFS snapshots
+If your source data lives on a ZFS filesystem (like TrueNAS), backing up live datasets can lead to database corruption or inconsistent files. 
+Instead, you can configure the client container to automatically discover and back up frozen, read-only ZFS snapshots.
 
+### 1. Configure the volume mounts
+Instead of mounting your live data, mount the hidden `.zfs/snapshot` directory of your datasets into the container's `/source_data` directory.
+
+**⚠️ CRITICAL ZFS GOTCHA:** ZFS datasets do *not* cross child boundaries. 
+If you mount a parent pool's snapshot folder, it will appear empty to the container. 
+You **must** explicitly bind-mount the `.zfs/snapshot` folder of every single child dataset you want to back up.
+
+```yaml
+    volumes:
+      # DO NOT just mount /mnt/storage/.zfs/snapshot
+      # DO mount the specific child datasets:
+      - /mnt/storage/docker/.zfs/snapshot:/source_data/storage/docker:ro
+      - /mnt/storage/database/.zfs/snapshot:/source_data/storage/database:ro
+```
+
+### 2. Specify the snapshot prefix
+In your Client's `docker-compose.yml` (or `.env`), set the `SNAPSHOT_PREFIX` environment variable. 
+This tells the container which TrueNAS snapshot tasks to look for.
+
+**⚠️ IMPORTANT:** Your snapshot names **must** be alphabetically sortable in chronological order (e.g., `daily-YYYY-MM-DD_HH-MM`). 
+The script uses standard shell sorting to pick the newest snapshot folder.
+
+```yaml
+    environment:
+      - SNAPSHOT_PREFIX=storage-daily-
+```
+
+### 3. Update your `config.yaml`
+Open your generated `config/borgmatic/config.yaml` and switch it from live folder mode to dynamic snapshot mode.
+
+1. **Comment out** (or delete) the `source_directories` block.
+2. **Uncomment** the `patterns_from` and `commands` blocks.
+
+```yaml
+# -- Regular filesystem backups --
+# source_directories:
+#     - /source_data
+
+# -- Backing up zfs snapshots --
+patterns_from:
+    - /etc/borgmatic.d/dynamic_roots.lst # backup data with patterns in this file
+
+commands:
+    # Generate dynamic_roots.lst based on the latest snapshot pattern
+    - before: everything
+      run:
+          - /bin/sh /generate_roots.sh
+```
+
+
+## Environment variable reference
 ### General options
-- `ROLE`: Must be either "*client*" or "*target*".
-- `ENABLE_WIREGUARD`: true or false.
+* `ROLE`: Must be either "*client*" or "*target*".
+* `ENABLE_WIREGUARD`: true or false.
 
 ### WireGuard options (requires ENABLE_WIREGUARD=true)
-- `WG_MODE`: Must be server (usually the Target) or client (usually the Client).
-- `WG_ENDPOINT`: Required for the client. The public IP/domain and port of the server (e.g., 198.51.100.1:51821).
-- `WG_PRIVATE_KEY`: The WireGuard private key for this container.
-- `WG_PEER_PUBLIC_KEY`: The WireGuard public key of the other container.
+* `WG_MODE`: Must be server (usually the Target) or client (usually the Client).
+* `WG_ENDPOINT`: Required for the client. The public IP/domain and port of the server (e.g., 198.51.100.1:51821).
+* `WG_PRIVATE_KEY`: The WireGuard private key for this container.
+* `WG_PEER_PUBLIC_KEY`: The WireGuard public key of the other container.
 
 ### Security options
-- `SSH_PRIVATE_KEY`: (Client only). The full multi-line ed25519 private key.
-- `SSH_PUBLIC_KEY`: (Target only). The ed25519 public key. The container automatically wraps this in severe restriction commands before applying it.
+* `SSH_PRIVATE_KEY`: (Client only). The full multi-line ed25519 private key.
+* `SSH_PUBLIC_KEY`: (Target only). The ed25519 public key. The container automatically wraps this in severe restriction commands before applying it.
 
 ### Scheduling and monitoring
-- `CRON_SCHEDULE`: (Client only). Standard cron syntax for the backup run (e.g., `0 3 * * *`).
-- `CRON_CHECK_SCHEDULE`: (Client only). Standard cron syntax for repository consistency checks (e.g., `0 1 * * 0`).
-- `KUMA_CLIENT_PUSH_URL`: (Client only). Pushed natively by Borgmatic on backup start, success, and failure.
-- `KUMA_TARGET_PUSH_URL`: (Target only). Pushed every 12 hours. Reports "UP" if files in /backups were modified in the last 48 hours, and "DOWN" (Stale Data) if not.
+* `CRON_SCHEDULE`: (Client only). Standard cron syntax for the backup run (e.g., `0 3 * * *`).
+* `CRON_CHECK_SCHEDULE`: (Client only). Standard cron syntax for repository consistency checks (e.g., `0 1 * * 0`).
+* `KUMA_CLIENT_PUSH_URL`: (Client only). Pushed natively by Borgmatic on backup start, success, and failure.
+* `KUMA_TARGET_PUSH_URL`: (Target only). Pushed every 12 hours. Reports "UP" if files in /backups were modified in the last 48 hours, and "DOWN" (Stale Data) if not.
+
+### Advanced options
+* `SNAPSHOT_PREFIX`: (Client only). Used for dynamic ZFS snapshot backups. Specifies the prefix of the snapshot to look for (e.g., `storage-daily-`).
 
 
 ## Security considerations
 Even if the Client machine is fully compromised, the attacker cannot delete old backups or compromise the Target machine.
 
-The entrypoint.sh automatically formats the Target's `authorized_keys` file to include `command="borg serve --restrict-to-path /backups",restrict`. 
+The entrypoint.sh automatically formats the Target's `authorized_keys` file to include `command="borg serve --restrict-to-path /backups",restrict`.
 This disables port forwarding, terminal access, and completely ignores whatever command the Client attempts to execute, forcing it exclusively into the Borg server protocol confined to the mapped storage directory.
+

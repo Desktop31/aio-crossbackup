@@ -19,6 +19,8 @@ RUN mkdir -p /var/run/sshd /root/.ssh /etc/wireguard /etc/borgmatic.d && \
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+COPY docker/generate_roots.sh /generate_roots.sh
+RUN chmod +x /generate_roots.sh
 
 VOLUME /etc/borgmatic.d
 VOLUME /etc/wireguard

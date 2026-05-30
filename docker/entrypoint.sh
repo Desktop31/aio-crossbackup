@@ -69,17 +69,34 @@ EOF
 fi
 
 # 3. BORGMATIC CONFIG TEMPLATE (Client Only)
-if [ "$ROLE" = "client" ] && [ ! -f /etc/borgmatic.d/config.yaml ]; then
-    echo "Generating default borgmatic.yaml template..."
+if [ "$ROLE" = "client" ]; then
+    # Ensure config directory exists and create the dummy list file
+    # to prevent Borgmatic parsing errors before the hook runs
+    mkdir -p /etc/borgmatic.d
+    touch /etc/borgmatic.d/dynamic_roots.lst
 
-    TARGET_IP=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "10.10.10.2" || echo "TARGET_IP_OR_DOMAIN")
-    TARGET_PORT=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "22" || echo "2222")
-    CLIENT_PUSH=${KUMA_CLIENT_PUSH_URL:-"https://kuma.yourdomain.com/api/push/CLIENT_ID"}
-    REPO=${TARGET_REPOSITORY_URL:-"ssh://root@${TARGET_IP}:${TARGET_PORT}/backups/my_repo.borg"}
+    if [ ! -f /etc/borgmatic.d/config.yaml ]; then
+        echo "Generating default borgmatic.yaml template..."
 
-    cat <<EOF > /etc/borgmatic.d/config.yaml
+        TARGET_IP=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "10.10.10.2" || echo "TARGET_IP_OR_DOMAIN")
+        TARGET_PORT=$([ "$ENABLE_WIREGUARD" = "true" ] && echo "22" || echo "2222")
+        CLIENT_PUSH=${KUMA_CLIENT_PUSH_URL:-"https://kuma.yourdomain.com/api/push/CLIENT_ID"}
+        REPO=${TARGET_REPOSITORY_URL:-"ssh://root@${TARGET_IP}:${TARGET_PORT}/backups/my_repo.borg"}
+
+        cat <<EOF > /etc/borgmatic.d/config.yaml
+# -- Regular filesystem backups --
 source_directories:
     - /source_data
+
+# -- Backing up zfs snapshots --
+# patterns_from:
+#     - /etc/borgmatic.d/dynamic_roots.lst # backup data with patterns in this file
+#
+# commands:
+#     # Generate dynamic_roots.lst based on the latest snapshot pattern
+#     - before: everything
+#       run:
+#           - /bin/sh /generate_roots.sh
 
 repositories:
     - path: ${REPO}
@@ -93,10 +110,13 @@ keep_weekly: 8
 # Keeps 1 monthly backup for the last 6 months (6 monthly backups)
 keep_monthly: 6
 
-checks:
-    - repository
-    - archives
-check_last: 3
+consistency:
+    checks:
+        - name: repository # Fast, verifies master index for corruption
+          frequency: 1 week
+        - name: archives   # Medium-fast, verifies snapshot (archive) metadata - whether a backup can be restored
+          frequency: 2 weeks
+    check_last: 3
 
 log_file: /etc/borgmatic.d/log.txt
 retries: 3
@@ -113,9 +133,10 @@ uptime_kuma:
         - fail
     verify_tls: true
 EOF
-    echo "ACTION REQUIRED: Initialize the repo by running:"
-    echo "docker exec -it <container_name> borgmatic init"
-    echo "CRITICAL: Back up the keyfile to prevent losing data!: \`docker exec -it <container_name> borgmatic key export\`"
+        echo "ACTION REQUIRED: Initialize the repo by running:"
+        echo "docker exec -it <container_name> borgmatic init"
+        echo "CRITICAL: Back up the keyfile to prevent losing data!: \`docker exec -it <container_name> borgmatic key export\`"
+    fi
 fi
 
 # 4. START SERVICES
@@ -160,7 +181,6 @@ EOF
         fcrontab -u root /tmp/fcrontab_target.txt
     fi
 fi
-
 
 # Start fcron daemon in the background
 fcron -b
