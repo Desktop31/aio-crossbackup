@@ -22,7 +22,9 @@ services:
       - ./backup_destination/:/backups
       # Preserve known_hosts
       - root_data:/root
+      - etc_ssh_data:/etc/ssh/
 
 volumes:
   root_data:
+  etc_ssh_data:
 

@@ -38,7 +38,8 @@ services:
       - ./config/wireguard:/etc/wireguard     
       # Preserve keyfile and known_hosts
       - root_data:/root
+      - etc_ssh_data:/etc/ssh/
 
 volumes:
   root_data:
-
+  etc_ssh_data:
