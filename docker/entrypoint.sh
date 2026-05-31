@@ -185,6 +185,10 @@ EOF
     fi
 fi
 
+# Prevent log spam by deleting Alpine's default 'systab' schedules
+fcrontab -u systab -r 2>/dev/null || true
+rm -f /var/spool/fcron/systab*
+
 # Start fcron daemon in the background
 fcron -b
 echo "Container initialized successfully. Streaming logs..."
