@@ -147,6 +147,14 @@ if [ "$ROLE" = "client" ]; then
     # Create a temporary file to hold the fcron rules
     true > /tmp/fcrontab.txt
 
+    # Inject essential environment variables into Cron 
+    echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" >> /tmp/fcrontab.txt
+    
+    # Pass environment variable to cron (needed for generate_roots.sh)
+    if [ -n "$SNAPSHOT_PREFIX" ]; then
+        echo "SNAPSHOT_PREFIX=${SNAPSHOT_PREFIX}" >> /tmp/fcrontab.txt
+    fi
+
     if [ -n "$CRON_SCHEDULE" ]; then
         echo "Setting backup schedule: $CRON_SCHEDULE (with boot catch-up)"
         # &bootrun tells fcron to catch up on missed runs upon startup
