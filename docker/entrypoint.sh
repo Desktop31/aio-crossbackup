@@ -97,6 +97,9 @@ source_directories:
 #     - before: everything
 #       run:
 #           - /bin/sh /generate_roots.sh
+#     - after: everything
+#       run:
+#           - /bin/sh /cleanup_roots.sh
 
 repositories:
     - path: ${REPO}

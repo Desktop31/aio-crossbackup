@@ -35,8 +35,8 @@ for parent in $PARENTS; do
   
   LATEST_PATH=""
   
-  # Find the newest chronological snapshot
-  for dir in "$parent/${PREFIX}"*; do
+  # Find the newest chronological snapshot inside the hidden .zfs directory
+  for dir in "$parent/.zfs/snapshot/${PREFIX}"*; do
     if [ -d "$dir" ]; then
       LATEST_PATH="$dir"
     fi

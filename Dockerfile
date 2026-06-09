@@ -19,8 +19,12 @@ RUN mkdir -p /var/run/sshd /root/.ssh /etc/wireguard /etc/borgmatic.d && \
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+# Mounts zfs snapshots 
 COPY docker/generate_roots.sh /generate_roots.sh
 RUN chmod +x /generate_roots.sh
+# Unmounts zfs snapshots
+COPY docker/cleanup_roots.sh /cleanup_roots.sh
+RUN chmod +x /cleanup_roots.sh
 
 VOLUME /etc/borgmatic.d
 VOLUME /etc/wireguard
