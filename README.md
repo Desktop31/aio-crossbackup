@@ -5,6 +5,8 @@ This project provides a single, unified Docker image that operates as either a b
 It handles automated backups using borgmatic and includes a built-in WireGuard VPN to seamlessly bypass NAT. 
 Security is enforced through internal strict iptables firewalls and SSH command restrictions.
 
+![borg good](./borggood.gif)
+
 
 ## Features
 - **Unified image:** The exact same Docker image runs on both the source and destination servers, toggled via environment variables.
@@ -125,22 +127,7 @@ Your automated backups will now run according to your `CRON_SCHEDULE`.
 If your source data lives on a ZFS filesystem (like TrueNAS), backing up live datasets can lead to database corruption or inconsistent files. 
 Instead, you can configure the client container to automatically discover and back up frozen, read-only ZFS snapshots.
 
-### 1. Configure the volume mounts
-Instead of mounting your live data, mount the hidden `.zfs/snapshot` directory of your datasets into the container's `/source_data` directory.
-
-**⚠️ CRITICAL ZFS GOTCHA:** ZFS datasets do *not* cross child boundaries. 
-If you mount a parent pool's snapshot folder, it will appear empty to the container. 
-You **must** explicitly bind-mount the `.zfs/snapshot` folder of every single child dataset you want to back up.
-
-```yaml
-    volumes:
-      # DO NOT just mount /mnt/storage/.zfs/snapshot
-      # DO mount the specific child datasets:
-      - /mnt/storage/docker/.zfs/snapshot:/source_data/storage/docker:ro
-      - /mnt/storage/database/.zfs/snapshot:/source_data/storage/database:ro
-```
-
-### 2. Specify the snapshot prefix
+### 1. Specify the snapshot prefix
 In your Client's `docker-compose.yml` (or `.env`), set the `SNAPSHOT_PREFIX` environment variable. 
 This tells the container which TrueNAS snapshot tasks to look for.
 
@@ -152,7 +139,7 @@ The script uses standard shell sorting to pick the newest snapshot folder.
       - SNAPSHOT_PREFIX=storage-daily-
 ```
 
-### 3. Update your `config.yaml`
+### 2. Update your `config.yaml`
 Open your generated `config/borgmatic/config.yaml` and switch it from live folder mode to dynamic snapshot mode.
 
 1. **Comment out** (or delete) the `source_directories` block.
@@ -172,6 +159,10 @@ commands:
     - before: everything
       run:
           - /bin/sh /generate_roots.sh
+    # Clean up mounted zfs snapshots to release them from 'busy' state
+    - after: everything
+      run:
+          - /bin/sh /cleanup_roots.sh
 ```
 
 
